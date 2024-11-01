@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>TTP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    video {
+      width: 640px;
+      height: 480px;
+      border: 3px double black;
+      margin-bottom: 10px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      color: #14a5b3;
+      border-radius: 50px;
+      border: none;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      color: black;
+    }
+    #errorMsg {
+      color: red;
+      font-weight: bold;
+    }
+    #downloadLink {
+      display: inline-block;
+      padding: 10px;
+      margin-top: 10px;
+      text-decoration: none;
+      color: white;
+      background-color: #4CAF50;
+      border-radius: 5px;
+    }
+    h1 {
+      color: teal;
+    }
+  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <h1>TTP Movie Capture</h1>
+
+  <!-- Live Video Preview -->
+  <video id="videoPreview" autoplay muted></video>
+  <div id="errorMsg"></div>
+
+  <!-- Recording Controls -->
+  <div>
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+  </div>
+
+  <!-- Playback and Download Section -->
+  <h3>Recorded Video:</h3>
+  <video id="recordedVideo" controls style="display:none;"></video>
+  <a id="downloadLink" style="display: none;">Download Video</a>
+
+  <script>
+    const videoPreview = document.getElementById('videoPreview');
+    const recordedVideo = document.getElementById('recordedVideo');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const downloadLink = document.getElementById('downloadLink');
+    const errorMsg = document.getElementById('errorMsg');
+
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    // Get access to the camera and microphone
+    async function getMediaStream() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        videoPreview.srcObject = stream;
+
+        // Initialize MediaRecorder with the stream
+        mediaRecorder = new MediaRecorder(stream);
+
+        // Collect video chunks during recording
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        // When recording stops, process the recorded chunks
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          recordedVideo.src = url;
+          recordedVideo.style.display = 'block';
+
+          // Provide a download link for the recorded video
+          downloadLink.href = url;
+          downloadLink.download = 'recorded_video.webm';
+          downloadLink.textContent = 'Download Video';
+          downloadLink.style.display = 'inline-block';
+        };
+      } catch (error) {
+        errorMsg.textContent = 'Error accessing camera and microphone: ' + error.message;
+      }
+    }
+
+    getMediaStream();
+
+    // Start recording
+    startBtn.addEventListener('click', () => {
+      recordedChunks = [];
+      mediaRecorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    });
+
+    // Stop recording
+    stopBtn.addEventListener('click', () => {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    });
+  </script>
+
+</body>
+</html>
